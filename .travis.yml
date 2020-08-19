@@ -62,8 +62,6 @@ before_script:
   - sudo make install
   - cd ../.. 
   - mkdir build
-  - mkdir b
-  - mkdir b/Debug
   - cd build
   - if [ "$TRAVIS_DIST" = "bionic" ]; then
       /usr/bin/cmake .. -DCMAKE_BUILD_TYPE=Debug;

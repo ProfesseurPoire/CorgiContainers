@@ -9,6 +9,7 @@ else()
     set(arch_suffix "64")
 endif()
 
+
 add_library(${PROJECT_NAME} INTERFACE)
 
 target_include_directories(${PROJECT_NAME} INTERFACE 
