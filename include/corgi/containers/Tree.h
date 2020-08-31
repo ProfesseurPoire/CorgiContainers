@@ -55,6 +55,85 @@ enum class IteratorMode :  char
 };
 
 template<class T>
+class ConstTreeIterator
+{
+public:
+
+	ConstTreeIterator()=default;
+
+	explicit ConstTreeIterator(const Tree<T>& tree, IteratorMode mode = IteratorMode::DepthFirst):
+		mode_(mode)
+	{
+		for(auto& node : tree.children().data())
+		{
+			queue_.push_back(*node);
+		}
+		operator++();
+	}
+
+	explicit ConstTreeIterator(const Node<T>& node, IteratorMode mode = IteratorMode::DepthFirst):
+		mode_(mode)
+	{
+		for(auto& n : node.children().data())
+		{
+			queue_.push_back(*n);
+		}
+		operator++();
+	}
+
+	[[nodiscard]] const Node<T>& operator*() noexcept{return *current_node_;}
+
+	void increment_breadth_first() noexcept
+	{
+		current_node_ = &queue_.front().get();
+		queue_.pop_front();
+		auto& children = current_node_->children();
+		std::copy(children.begin(), children.end(), std::back_inserter(queue_));
+	}
+
+	void increment_depth_first()  noexcept
+	{
+		current_node_ = &queue_.front().get();
+		queue_.pop_front();
+		auto& children= current_node_->children();
+		std::copy(children.rbegin(), children.rend(), std::front_inserter(queue_));
+	}
+
+	ConstTreeIterator& operator++() noexcept
+	{
+		if(queue_.empty())
+		{
+			current_node_=nullptr;
+			return *this;
+		}
+
+		switch(mode_)
+		{
+			case IteratorMode::BreadthFirst:
+				increment_breadth_first();
+			break;
+
+			case IteratorMode::DepthFirst:
+				increment_depth_first();
+			break;
+		}
+		return *this;
+	}
+
+	[[nodiscard]] bool operator!=(const ConstTreeIterator& iterator)const noexcept
+	{
+		return current_node_ != iterator.current_node_;
+	}
+
+private:
+
+	std::deque<const Reference<Node<T>>> queue_;
+	IteratorMode mode_      {IteratorMode::DepthFirst};
+	bool recursive_         {true};
+	const Node<T>* current_node_  {nullptr};
+};
+
+template<class T>
 class TreeIterator
 {
 public:
@@ -229,6 +308,8 @@ private:
 
 	auto& data() { return children_; }
 
+	const auto& data()const {return children_;}
+
 	/*!
 	 * @brief   Constructs and adds a new Node into the children's vector
 	 */
@@ -311,13 +392,18 @@ private:
 	//  Capacity Functions
 
 	[[nodiscard]] constexpr bool empty()const noexcept { return children_.empty(); }
-	[[nodiscard]] size_t size()const noexcept { return children_.size(); }
+	[[nodiscard]] size_t size()const noexcept 	{ return children_.size(); }
 	[[nodiscard]] auto max_size()const noexcept { return  children_.max_size(); }
 	[[nodiscard]] auto capacity()const noexcept { return  children_.capacity(); }
+
 	void shrink_to_fit() noexcept { children_.capacity(); }
 
 private:
 
+	// TODO : Maybe change the name of this, because it's kinda 
+	// confusing to call the node attached to the children_ "parent", when it's not
+	// really a parent
+	
 	Tree<T>&   tree_;
 	Vector<std::unique_ptr<Node<T>>> children_;
 	// Can be optional because this is used by the tree too
@@ -469,6 +555,9 @@ public:
 	// iterate over the tree with depth/breadth first search enabled
 	[[nodiscard]] TreeIterator<T> begin() noexcept;
 	[[nodiscard]] TreeIterator<T> end() noexcept;
+
+	[[nodiscard]] ConstTreeIterator<T> begin()const noexcept;
+	[[nodiscard]] ConstTreeIterator<T> end()const noexcept;
 	
 	void iterator_mode(IteratorMode mode)noexcept;
 
@@ -497,7 +586,13 @@ template<class T>
 TreeIterator<T> Tree<T>::begin() noexcept { return TreeIterator<T>(*this, iterator_mode_); }
 
 template<class T>
+ConstTreeIterator<T> Tree<T>::begin()const noexcept{ return ConstTreeIterator<T>(*this, iterator_mode_);}
+
+template<class T>
 TreeIterator<T> Tree<T>::end() noexcept { return TreeIterator<T>(); }
+
+template<class T>
+ConstTreeIterator<T> Tree<T>::end()const noexcept {return ConstTreeIterator<T>();}
 
 template<class T>
 void Tree<T>::iterator_mode(IteratorMode mode) noexcept { iterator_mode_ = mode; }
